@@ -15,10 +15,20 @@ regex = "1"
 blake3 = "1"
 dirs = "5"
 tempfile = "3"
+owo-colors = "4"
 
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
+insta = { version = "1", features = ["yaml"] }
+
+[[bin]]
+name = "cc-essentials"
+path = "src/main.rs"
+
+[lib]
+name = "cc_essentials"
+path = "src/lib.rs"
 
 [profile.release]
 lto = "thin"

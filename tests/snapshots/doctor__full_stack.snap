@@ -1,0 +1,13 @@
+---
+source: tests/doctor.rs
+expression: out
+---
+cc-essentials doctor
+  start: <TMP>
+  git repo root: <TMP> (found)
+  package manager: Pnpm (<TMP>/pnpm-lock.yaml) (found)
+  biome config: <TMP>/biome.json (found)
+  biome binary: <TMP>/node_modules/.bin/biome (found)
+  biome version: 1.9.4
+  cache dir: <TMP>/__cache__
+ready: biome detected

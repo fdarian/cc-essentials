@@ -1,5 +1,5 @@
 use crate::cache;
-use crate::detect;
+use crate::commands;
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 
@@ -33,12 +33,9 @@ pub fn run() -> anyhow::Result<()> {
         Command::Doctor => {
             let start = std::env::current_dir().context("cwd")?;
             let cache = cache::Cache::open()?;
-            let d = detect::detect_from(&start, &cache)?;
-            println!("doctor:");
-            println!("  start: {}", d.start.display());
-            println!("  repo_root: {:?}", d.repo_root);
-            println!("  package_manager: {:?}", d.package_manager);
-            println!("  biome: {:?}", d.biome);
+            let use_color = std::io::IsTerminal::is_terminal(&std::io::stdout());
+            let mut out = std::io::stdout().lock();
+            commands::doctor::run(&start, &cache, &mut out, use_color)?;
         }
         Command::Hooks { cmd } => match cmd {
             HooksCommand::Crite => {

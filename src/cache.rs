@@ -38,11 +38,15 @@ impl Cache {
         Ok(Self { dir })
     }
 
-    /// Open the cache rooted at an explicit directory — for tests.
-    #[cfg(test)]
+    /// Open the cache rooted at an explicit directory.
     pub fn open_at(dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&dir)?;
         Ok(Self { dir })
+    }
+
+    /// Return the cache directory path.
+    pub fn dir(&self) -> &Path {
+        &self.dir
     }
 
     fn entry_path(&self, config_path: &Path) -> PathBuf {

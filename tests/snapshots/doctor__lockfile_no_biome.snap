@@ -1,0 +1,12 @@
+---
+source: tests/doctor.rs
+expression: out
+---
+cc-essentials doctor
+  start: <TMP>
+  git repo root: <TMP> (found)
+  package manager: Npm (<TMP>/package-lock.json) (found)
+  biome config: not configured (no biome.json / biome.jsonc found)
+  biome binary: not applicable
+  cache dir: <TMP>/__cache__
+partial: JS/TS project detected but no biome config
