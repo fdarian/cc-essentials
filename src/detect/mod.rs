@@ -1,7 +1,15 @@
+mod package_manager;
+mod repo;
+
+#[allow(unused_imports)]
+pub use package_manager::detect_package_manager;
+#[allow(unused_imports)]
+pub use repo::find_git_root;
+
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)] // variants wired up in next commit
+#[allow(dead_code)] // variants wired up in future commit
 pub enum PackageManager {
     Npm,
     Pnpm,
