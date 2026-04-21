@@ -14,6 +14,8 @@ pub struct Cli {
 enum Command {
     /// Health-check detection (formatter, repo root, cache, etc.)
     Doctor,
+    /// Show error dumps and recent log entries.
+    Logs,
     /// Claude Code hooks.
     Hooks {
         #[command(subcommand)]
@@ -36,6 +38,12 @@ pub fn run() -> anyhow::Result<()> {
             let use_color = std::io::IsTerminal::is_terminal(&std::io::stdout());
             let mut out = std::io::stdout().lock();
             commands::doctor::run(&start, &cache, &mut out, use_color)?;
+        }
+        Command::Logs => {
+            let cache = cache::Cache::open()?;
+            let use_color = std::io::IsTerminal::is_terminal(&std::io::stdout());
+            let mut out = std::io::stdout().lock();
+            commands::logs::run(&cache, &mut out, use_color)?;
         }
         Command::Hooks { cmd } => match cmd {
             HooksCommand::Crite => {

@@ -1,6 +1,7 @@
 use crate::biome::{run::BiomeOutcome, summary};
 use crate::cache::Cache;
-use crate::detect::{self, BiomeSetup};
+use crate::detect;
+use crate::error_dump::{self, LastErrorPayload};
 use crate::hook_io::{HookInput, HookOutput, HookSpecificOutput};
 use crate::log;
 use anyhow::Result;
@@ -83,22 +84,19 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
     };
 
     // 6. Compute the file path relative to the biome config's directory (biome uses cwd=config_dir).
-    let BiomeSetup {
-        config_path,
-        binary_path,
-        ..
-    } = biome;
-    let config_dir = match config_path.parent() {
+    let config_dir = match biome.config_path.parent() {
         Some(p) => p.to_path_buf(),
         None => {
             log::log_event(
                 cache.dir(),
                 "hook.no_config_parent",
-                json!({ "config": config_path.display().to_string() }),
+                json!({ "config": biome.config_path.display().to_string() }),
             );
             return Ok(HookOutput::default());
         }
     };
+    let config_path = biome.config_path.clone();
+    let binary_path = biome.binary_path.clone();
     let file_canonical = std::fs::canonicalize(&file_path).unwrap_or(file_path.clone());
     let config_dir_canonical = std::fs::canonicalize(&config_dir).unwrap_or(config_dir.clone());
     let relative = match file_canonical.strip_prefix(&config_dir_canonical) {
@@ -111,6 +109,12 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
     };
 
     // 7. Run biome.
+    let argv: Vec<String> = vec![
+        "check".to_string(),
+        "--write".to_string(),
+        "--reporter=json".to_string(),
+        relative.to_string_lossy().into_owned(),
+    ];
     let outcome = crate::biome::run::run_check(&binary_path, &config_dir_canonical, &relative);
 
     let display = file_path
@@ -123,15 +127,81 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
         _ => None,
     };
 
-    log::log_event(
-        cache.dir(),
-        "hook.completed",
-        json!({
-            "path": file_path_str,
-            "outcome": outcome_kind(&outcome),
-            "has_additional_context": additional.is_some(),
-        }),
-    );
+    // 8. Write last-error.json (always-on) and emit enriched log events for non-Parsed outcomes.
+    match &outcome {
+        BiomeOutcome::Parsed { .. } => {
+            log::log_event(
+                cache.dir(),
+                "hook.completed",
+                json!({
+                    "path": file_path_str,
+                    "outcome": outcome_kind(&outcome),
+                    "has_additional_context": additional.is_some(),
+                }),
+            );
+        }
+        BiomeOutcome::FallbackText {
+            stdout,
+            stderr,
+            exit_code,
+        } => {
+            let payload = LastErrorPayload {
+                ts_unix_ms: error_dump::current_ts_unix_ms(),
+                event: "fallback_text",
+                tool_name: input.tool_name.clone(),
+                file_path: file_path_str.clone(),
+                biome_binary: Some(binary_path.clone()),
+                biome_config: Some(config_path.clone()),
+                argv: argv.clone(),
+                cwd: Some(config_dir_canonical.clone()),
+                exit_code: *exit_code,
+                stdout_first_4k: error_dump::truncate_utf8(stdout, 4096),
+                stderr_first_4k: error_dump::truncate_utf8(stderr, 4096),
+                error: None,
+            };
+            error_dump::write_last_error(cache.dir(), &payload);
+            log::log_event(
+                cache.dir(),
+                "hook.completed",
+                json!({
+                    "path": file_path_str,
+                    "outcome": outcome_kind(&outcome),
+                    "has_additional_context": additional.is_some(),
+                    "exit_code": exit_code,
+                    "stdout_first_1k": error_dump::truncate_utf8(stdout, 1024),
+                    "stderr_first_1k": error_dump::truncate_utf8(stderr, 1024),
+                }),
+            );
+        }
+        BiomeOutcome::SpawnFailed { error } => {
+            let payload = LastErrorPayload {
+                ts_unix_ms: error_dump::current_ts_unix_ms(),
+                event: "spawn_failed",
+                tool_name: input.tool_name.clone(),
+                file_path: file_path_str.clone(),
+                biome_binary: Some(binary_path.clone()),
+                biome_config: Some(config_path.clone()),
+                argv: argv.clone(),
+                cwd: Some(config_dir_canonical.clone()),
+                exit_code: None,
+                stdout_first_4k: String::new(),
+                stderr_first_4k: String::new(),
+                error: Some(error.clone()),
+            };
+            error_dump::write_last_error(cache.dir(), &payload);
+            log::log_event(
+                cache.dir(),
+                "hook.completed",
+                json!({
+                    "path": file_path_str,
+                    "outcome": outcome_kind(&outcome),
+                    "has_additional_context": additional.is_some(),
+                    "exit_code": serde_json::Value::Null,
+                    "error": error,
+                }),
+            );
+        }
+    }
 
     Ok(HookOutput {
         system_message: Some(sys_msg),
