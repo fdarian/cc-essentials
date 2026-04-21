@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CacheKey {
@@ -13,7 +13,6 @@ pub struct CacheKey {
     pub biome_config_stamp: FileStamp,
     pub lockfile_path: Option<PathBuf>,
     pub lockfile_stamp: Option<FileStamp>,
-    pub start_dir_canonical: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -122,7 +121,6 @@ mod tests {
             biome_config_stamp: file_stamp(&config).unwrap(),
             lockfile_path: None,
             lockfile_stamp: None,
-            start_dir_canonical: t.path().to_path_buf(),
         };
         (biome, key)
     }

@@ -76,7 +76,6 @@ fn resolve_biome(
         biome_config_stamp: config_stamp,
         lockfile_path,
         lockfile_stamp,
-        start_dir_canonical: start.to_path_buf(),
     };
 
     if let Some(hit) = cache.lookup(&key)? {
