@@ -1,6 +1,12 @@
+mod biome_bin;
+mod biome_config;
 mod package_manager;
 mod repo;
 
+#[allow(unused_imports)]
+pub use biome_bin::{find_biome_binary, probe_version};
+#[allow(unused_imports)]
+pub use biome_config::find_biome_config;
 #[allow(unused_imports)]
 pub use package_manager::detect_package_manager;
 #[allow(unused_imports)]
