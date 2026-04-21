@@ -12,13 +12,13 @@ fn doctor_stub_runs() {
 }
 
 #[test]
-fn hooks_crite_stub_runs() {
+fn hooks_crite_exits_0_on_empty_stdin() {
     Command::cargo_bin("cc-essentials")
         .unwrap()
         .args(["hooks", "crite"])
+        .write_stdin("")
         .assert()
-        .success()
-        .stdout(contains("hooks crite"));
+        .success();
 }
 
 #[test]

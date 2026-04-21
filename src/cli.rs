@@ -39,7 +39,10 @@ pub fn run() -> anyhow::Result<()> {
         }
         Command::Hooks { cmd } => match cmd {
             HooksCommand::Crite => {
-                println!("hooks crite: not yet implemented");
+                let cache = cache::Cache::open()?;
+                let mut stdin = std::io::stdin().lock();
+                let mut stdout = std::io::stdout().lock();
+                commands::hooks_crite::run(&cache, &mut stdin, &mut stdout)?;
             }
         },
     }
