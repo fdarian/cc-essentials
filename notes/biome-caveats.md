@@ -18,6 +18,48 @@ deliberately tolerant:
 If biome ships a stable reporter or renames the flag, update `biome::run`
 and the schema types; the rest of the pipeline doesn't care.
 
+## Biome 2.x output shape — what we learned the hard way
+
+The research-phase fixtures we committed (`biome_warnings.json`,
+`biome_errors.json`, etc.) used a simplified shape that didn't match
+what biome 2.3.11 actually emits. The hook broke in practice the first
+time it ran against a real project. Real biome 2.x:
+
+- `diagnostic.message` is an **array of styled segments**
+  `[{elements: [], content: "..."}, ...]`, not a plain string.
+- `diagnostic.description` is the plaintext form we actually want.
+- `location.path` is an object `{file: "/abs/foo.ts"}`, not a bare
+  string.
+- `location` uses `span: [byte_start, byte_end]` + an attached
+  `sourceCode` string, not `start: {line, column}` / `end: {...}`.
+- `summary.duration` / `summary.scannerDuration` are
+  `{secs, nanos}` objects. We don't deserialize them, so this is
+  fine — but worth knowing if you ever add them.
+
+Our handling:
+
+- `Diagnostic` uses a custom `Deserialize` that prefers `description`,
+  falling back to concatenating `content` fields from the
+  `message` segment array. The legacy string form still parses too.
+- `Location` declares both the legacy `start/end` fields and biome
+  2.x's `span` + `sourceCode`. All optional.
+- `summary::format_loc` uses `line_col` which prefers the legacy
+  shape and falls back to walking `sourceCode` to convert
+  `span[0]` (byte offset) into `(line, column)`.
+- `tests/fixtures/biome_v2_real.json` is captured directly from
+  biome 2.3.11 so this exact shape stays locked in.
+
+If biome 3.x changes this again, capture a fresh fixture, update the
+schema with new fallbacks, and keep the existing fallbacks — you
+don't know which biome version someone's project pins.
+
+## The `--json option is unstable` warning on stderr
+
+Biome 2.x writes this warning to stderr on every `--reporter=json`
+invocation. It's noise, not an error, and we filter it out of the
+user-facing `systemMessage` when we have to surface stderr content
+(the fallback-text path). See `biome::summary::system_message`.
+
 ## `check --write` leaves files untouched on parse errors — by default
 
 Per biome source (`FormatWithErrorsDisabled` diagnostic), biome refuses

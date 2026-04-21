@@ -66,17 +66,47 @@ we quietly no-op rather than crash.
 
 The recommended `.claude/settings.json` matcher is `"Write|Edit|MultiEdit"`.
 
-## Opt-in debug log
+## Diagnostics: two files, two audiences
+
+Two artifacts help diagnose hook misbehavior. Both live in
+`<cache_dir>/cc-essentials/detect/` and both are surfaced by
+`cc-essentials logs`.
+
+### `last-error.json` — always-on, overwritten each time
+
+Written whenever `hooks crite` produces a `BiomeOutcome::FallbackText`
+or `BiomeOutcome::SpawnFailed`. No env var required. Contains
+everything needed to reproduce: the hook input we read, the exact
+`argv` + `cwd` we passed to biome, the biome binary + config paths we
+resolved, the exit code, and the first 4KB each of stdout/stderr
+(UTF-8-safe truncation).
+
+This is the *load-bearing* invariant of the diagnostic surface: the
+next time the hook silently no-ops on someone, the evidence is
+already on disk. Do NOT gate this behind `CC_ESSENTIALS_LOG`.
+
+Writes are atomic (`NamedTempFile::persist`) and best-effort — a dump
+failure never propagates to the hook output.
+
+### `hooks.log` — opt-in history, JSONL-appended
 
 When `CC_ESSENTIALS_LOG=1` is set in the hook's environment,
-`cc-essentials` appends one JSONL line per invocation to
-`<cache_dir>/cc-essentials/detect/hooks.log`. This is the only way to
-debug silent no-ops (the `{}` exit path) without instrumenting the hook
-itself.
+`cc-essentials` appends one JSONL line per invocation. Event kinds
+include `hook.skip_unsupported_tool`, `hook.completed`,
+`hook.stdin_parse_failed`, etc.
 
-Log writes are best-effort: a failed write never propagates to the hook
-output. Log entries include the event kind (`hook.skip_unsupported_tool`,
-`hook.completed`, `hook.stdin_parse_failed`, etc.) and the relevant
-fields from the input.
+On non-`Parsed` outcomes, the `hook.completed` event carries the
+first 1KB each of stdout/stderr and the exit code. On `Parsed`
+outcomes it stays terse (just `path`, `outcome`,
+`has_additional_context`).
 
-The log file is not rotated or pruned. If it grows, users can delete it.
+Log writes are best-effort. The log file is not rotated or pruned.
+If it grows, users can delete it.
+
+### `cc-essentials logs`
+
+One-shot subcommand that reports whether logging is enabled, prints
+both paths, pretty-prints `last-error.json` if present, and tails the
+last 10 entries of `hooks.log`. This is what users should run first
+when the hook misbehaves — faster than grepping the cache dir by
+hand.

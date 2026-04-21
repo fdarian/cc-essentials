@@ -12,6 +12,9 @@ into Claude's context — without ever blocking a tool execution.
 - `cc-essentials hooks crite` — reads Claude Code hook JSON from
   stdin, runs `biome check --write --reporter=json` on the touched
   file, writes hook JSON to stdout. Always exits 0.
+- `cc-essentials logs` — surfaces the always-on `last-error.json`
+  dump and tails `hooks.log` if opt-in logging is enabled. The
+  first thing to reach for when a hook misbehaves.
 
 ## Stack
 
@@ -38,6 +41,7 @@ src/
   commands/
     doctor.rs                → human-readable report
     hooks_crite.rs           → stdin→biome→stdout, always Ok(())
+    logs.rs                  → surfaces last-error.json + hooks.log tail
   detect/
     mod.rs                   → DetectedProject + detect_from()
     repo.rs                  → find_git_root
@@ -52,13 +56,15 @@ src/
   hook_io.rs                 → HookInput / HookOutput (PostToolUse)
   fs_util.rs                 → walk_up_for, FileStamp
   log.rs                     → opt-in JSONL via CC_ESSENTIALS_LOG=1
+  error_dump.rs              → always-on last-error.json writer
 notes/                       → decision rationale (see below)
 tests/
-  fixtures/biome_*.json      → canned reporter output
+  fixtures/biome_*.json      → canned reporter output (incl. biome_v2_real)
   snapshots/                 → insta snapshots for doctor
   cli_stubs.rs               → smoke tests
   doctor.rs                  → snapshot tests with tempdir scenarios
   hooks_crite.rs             → end-to-end hook contract tests w/ stub biome
+  logs.rs                    → logs subcommand integration tests
 ```
 
 ## Detection contract
@@ -94,6 +100,11 @@ always-exit-0 rule.
    by default.** We depend on this — Claude often writes partial code
    mid-edit. If biome.json turns on `formatter.formatWithErrors`, this
    tool will rewrite broken source. See `notes/biome-caveats.md`.
+4. **`last-error.json` is always-on.** `commands::hooks_crite` writes
+   it to `<cache_dir>/last-error.json` on every `FallbackText` /
+   `SpawnFailed` outcome regardless of `CC_ESSENTIALS_LOG`. This is
+   the only evidence users have when the hook silently no-ops — don't
+   gate it behind anything.
 
 ## Testing
 
@@ -121,6 +132,15 @@ always-exit-0 rule.
 - Stub biome scripts in tests must handle `--version` first, because
   detection calls `probe_version` before any `check` invocation.
   Pattern: `if [ "$1" = "--version" ]; then echo 'Version: 1.9.4'; exit 0; fi`
+- Biome 2.x emits `diagnostic.message` as a styled segment array, not
+  a string, and puts the plaintext in `diagnostic.description`. Our
+  `Diagnostic` has a custom `Deserialize` that prefers `description`
+  and flattens segments as a fallback. Don't change it to a derived
+  `Deserialize` without re-reading `tests/fixtures/biome_v2_real.json`.
+- Integration tests MUST override `HOME` (and clear `XDG_CACHE_HOME`)
+  before invoking the binary — otherwise they'll write to the
+  developer's real cache dir. `tests/hooks_crite.rs::run_hook` already
+  does this; copy the pattern when adding new cases.
 
 ## Decision notes
 
