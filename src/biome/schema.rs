@@ -35,7 +35,7 @@ pub struct Summary {
     pub diagnostics_not_printed: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Diagnostic {
     #[serde(default)]
     pub severity: Severity,
@@ -58,7 +58,7 @@ pub enum Severity {
     Fatal,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Location {
     #[serde(default)]
     pub path: Option<PathOrObject>,
@@ -70,7 +70,7 @@ pub struct Location {
 
 /// Biome sometimes emits location.path as a plain string, sometimes as
 /// an object like `{ "file": "...", "path": "..." }`. Accept either.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum PathOrObject {
     Path(PathBuf),
@@ -86,7 +86,7 @@ impl PathOrObject {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Position {
     #[serde(default)]
     pub line: Option<u64>,
