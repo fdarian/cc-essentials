@@ -1,0 +1,17 @@
+{
+  "summary": {
+    "changed": 0,
+    "unchanged": 1,
+    "matches": 0,
+    "duration": "0ms",
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0,
+    "skipped": 0,
+    "suggestedFixesSkipped": 0,
+    "diagnosticsNotPrinted": 0,
+    "scannerDuration": "0ms"
+  },
+  "diagnostics": [],
+  "command": "check"
+}

@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "changed": 0,
+    "unchanged": 0,
+    "matches": 0,
+    "duration": "1ms",
+    "errors": 1,
+    "warnings": 0,
+    "infos": 0,
+    "skipped": 1,
+    "suggestedFixesSkipped": 0,
+    "diagnosticsNotPrinted": 0,
+    "scannerDuration": "0ms"
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "message": "expected expression but instead found ')'",
+      "category": "parse",
+      "location": {
+        "path": "src/foo.ts",
+        "start": { "line": 5, "column": 10 },
+        "end": { "line": 5, "column": 11 }
+      }
+    }
+  ],
+  "command": "check"
+}

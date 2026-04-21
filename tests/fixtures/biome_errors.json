@@ -1,0 +1,38 @@
+{
+  "summary": {
+    "changed": 0,
+    "unchanged": 1,
+    "matches": 0,
+    "duration": "2ms",
+    "errors": 1,
+    "warnings": 1,
+    "infos": 0,
+    "skipped": 0,
+    "suggestedFixesSkipped": 0,
+    "diagnosticsNotPrinted": 0,
+    "scannerDuration": "1ms"
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "message": "Variable 'unused' is assigned a value but never used.",
+      "category": "lint/correctness/noUnusedVariables",
+      "location": {
+        "path": "src/foo.ts",
+        "start": { "line": 10, "column": 5 },
+        "end": { "line": 10, "column": 11 }
+      }
+    },
+    {
+      "severity": "warning",
+      "message": "Missing key for list item.",
+      "category": "lint/correctness/useJsxKeyInIterable",
+      "location": {
+        "path": "src/foo.tsx",
+        "start": { "line": 22, "column": 9 },
+        "end": { "line": 22, "column": 13 }
+      }
+    }
+  ],
+  "command": "check"
+}
