@@ -1,0 +1,10 @@
+[package]
+name = "cc-essentials"
+version = "0.1.0"
+edition = "2021"
+description = "Claude Code essentials: doctor and post-tool formatting hook"
+license = "MIT"
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
