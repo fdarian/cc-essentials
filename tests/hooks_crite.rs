@@ -13,10 +13,17 @@ fn make_exec(p: &Path, body: &str) {
 }
 
 fn run_hook(stdin: &str) -> (String, i32) {
+    // Isolate every invocation under a throwaway HOME so tests never
+    // touch the developer's real ~/Library/Caches or ~/.cache. The
+    // TempDir is dropped at the end of this function — we don't need
+    // to inspect the cache afterwards.
+    let tmp = tempfile::tempdir().unwrap();
     let out = Command::cargo_bin("cc-essentials")
         .unwrap()
         .args(["hooks", "crite"])
         .env("CC_ESSENTIALS_LOG", "0") // explicitly disable log noise
+        .env("HOME", tmp.path())
+        .env_remove("XDG_CACHE_HOME")
         .write_stdin(stdin)
         .output()
         .unwrap();

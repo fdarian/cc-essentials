@@ -148,7 +148,7 @@ mod tests {
     #[cfg(unix)]
     fn detect_from_monorepo_root_picks_root_biome() {
         let t = setup_project(true, true);
-        let cache = Cache::open().unwrap();
+        let cache = Cache::open_at(t.path().join("__cache__")).unwrap();
         let d = detect_from(t.path(), &cache).unwrap();
         assert!(d.repo_root.is_some());
         assert_eq!(d.package_manager.as_ref().unwrap().0, PackageManager::Pnpm);
@@ -169,7 +169,7 @@ mod tests {
         let nested_raw = t.path().join("packages/foo");
         // Canonicalize so macOS /var -> /private/var symlink doesn't break starts_with.
         let nested = std::fs::canonicalize(&nested_raw).unwrap();
-        let cache = Cache::open().unwrap();
+        let cache = Cache::open_at(t.path().join("__cache__")).unwrap();
         let d = detect_from(&nested, &cache).unwrap();
         let biome = d.biome.unwrap();
         // nearest biome.json is in packages/foo
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn detect_from_no_biome_returns_none_biome_without_error() {
         let t = tempfile::tempdir().unwrap();
-        let cache = Cache::open().unwrap();
+        let cache = Cache::open_at(t.path().join("__cache__")).unwrap();
         let d = detect_from(t.path(), &cache).unwrap();
         assert!(d.biome.is_none());
     }
