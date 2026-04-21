@@ -183,4 +183,56 @@ mod tests {
         let d = detect_from(t.path(), &cache).unwrap();
         assert!(d.biome.is_none());
     }
+
+    /// Regression for the cache-thrashing bug fixed in c11.5a.
+    ///
+    /// Two `detect_from` calls that walk up to the same biome.json from
+    /// different subdirectories must produce a cache HIT on the second
+    /// call. Before the fix, `CacheKey::start_dir_canonical` differed
+    /// between the two, so each call clobbered the other's cache entry
+    /// and re-invoked `probe_version`.
+    ///
+    /// We verify by making the stub biome binary tick a counter file on
+    /// every invocation — first call increments, second call must not.
+    #[test]
+    #[cfg(unix)]
+    fn cache_shared_across_subdirs_with_same_biome_config() {
+        let t = tempfile::tempdir().unwrap();
+        let root = t.path();
+        fs::create_dir(root.join(".git")).unwrap();
+        fs::write(root.join("pnpm-lock.yaml"), "").unwrap();
+        fs::write(root.join("biome.json"), r#"{"root":true}"#).unwrap();
+
+        let counter = root.join("counter.txt");
+        let bin_dir = root.join("node_modules/.bin");
+        fs::create_dir_all(&bin_dir).unwrap();
+        let stub = format!(
+            "#!/bin/sh\necho x >> {}\necho 'Version: 1.9.4'\n",
+            counter.display()
+        );
+        make_exec(&bin_dir.join("biome"), &stub);
+
+        let a = root.join("packages/a");
+        let b = root.join("packages/b");
+        fs::create_dir_all(&a).unwrap();
+        fs::create_dir_all(&b).unwrap();
+
+        let cache = Cache::open_at(root.join("__cache__")).unwrap();
+
+        let d1 = detect_from(&a, &cache).unwrap();
+        assert_eq!(d1.biome.unwrap().version, "1.9.4");
+        let ticks_after_first = fs::read_to_string(&counter).unwrap().lines().count();
+        assert_eq!(
+            ticks_after_first, 1,
+            "first call should have invoked biome once"
+        );
+
+        let d2 = detect_from(&b, &cache).unwrap();
+        assert_eq!(d2.biome.unwrap().version, "1.9.4");
+        let ticks_after_second = fs::read_to_string(&counter).unwrap().lines().count();
+        assert_eq!(
+            ticks_after_second, 1,
+            "second call from a different subdir must hit the cache and NOT re-invoke biome"
+        );
+    }
 }
