@@ -1,5 +1,5 @@
 use super::run::BiomeOutcome;
-use super::schema::{CheckOutput, Diagnostic, Severity};
+use super::schema::{CheckOutput, Diagnostic, Location, Severity};
 use std::fmt::Write;
 
 const MAX_DIAGNOSTICS_IN_CONTEXT: usize = 50;
@@ -61,10 +61,29 @@ pub fn system_message(file_display: &str, outcome: &BiomeOutcome) -> String {
         BiomeOutcome::FallbackText {
             exit_code, stderr, ..
         } => {
-            format!(
-                "cc-essentials: biome error running against {file_display} (exit {exit_code:?}): {}",
-                stderr.lines().next().unwrap_or("").trim()
-            )
+            // Non-JSON biome output. Two common cases:
+            // - exit 0: biome ran fine but emitted a reporter the parser didn't understand.
+            //   Skip stderr noise like the `--json is unstable` warning.
+            // - non-zero: genuine biome error; surface the first stderr line.
+            let note = stderr
+                .lines()
+                .find(|l| {
+                    let t = l.trim();
+                    !t.is_empty()
+                        && !t.contains("--json option is unstable")
+                        && !t.contains("--json is unstable")
+                })
+                .unwrap_or("")
+                .trim();
+            match exit_code {
+                Some(0) => format!(
+                    "cc-essentials: ran biome on {file_display} but couldn't parse its output{}",
+                    if note.is_empty() { String::new() } else { format!(" ({note})") }
+                ),
+                _ => format!(
+                    "cc-essentials: biome error running against {file_display} (exit {exit_code:?}): {note}"
+                ),
+            }
         }
         BiomeOutcome::SpawnFailed { error } => {
             format!("cc-essentials: failed to run biome against {file_display}: {error}")
@@ -107,19 +126,38 @@ fn format_loc(d: &Diagnostic) -> String {
         .and_then(|l| l.path.as_ref())
         .map(|p| p.display())
         .unwrap_or_else(|| "?".to_string());
-    let line = d
-        .location
-        .as_ref()
-        .and_then(|l| l.start.as_ref())
-        .and_then(|p| p.line)
-        .unwrap_or(0);
-    let col = d
-        .location
-        .as_ref()
-        .and_then(|l| l.start.as_ref())
-        .and_then(|p| p.column)
-        .unwrap_or(0);
+    let (line, col) = d.location.as_ref().and_then(line_col).unwrap_or((0, 0));
     format!("{path}:{line}:{col}")
+}
+
+/// Resolve line/column from a biome diagnostic location.
+///
+/// Prefers the legacy `start: {line, column}` shape (what our older
+/// fixtures emit). Falls back to biome 2.x's byte-offset `span` + the
+/// attached `sourceCode`, walking the source to convert offset to
+/// (line, column). Returns `None` when neither is usable.
+fn line_col(loc: &Location) -> Option<(u64, u64)> {
+    if let Some(start) = loc.start {
+        if let (Some(line), Some(col)) = (start.line, start.column) {
+            return Some((line, col));
+        }
+    }
+    let (start_offset, _) = loc.span?;
+    let source = loc.source_code.as_deref()?;
+    let mut line: u64 = 1;
+    let mut col: u64 = 1;
+    for (i, c) in source.char_indices() {
+        if i as u64 >= start_offset {
+            return Some((line, col));
+        }
+        if c == '\n' {
+            line += 1;
+            col = 1;
+        } else {
+            col += 1;
+        }
+    }
+    Some((line, col))
 }
 
 #[cfg(test)]

@@ -1,0 +1,276 @@
+{
+  "summary": {
+    "changed": 1,
+    "unchanged": 0,
+    "matches": 0,
+    "duration": {
+      "secs": 0,
+      "nanos": 25203958
+    },
+    "scannerDuration": {
+      "secs": 0,
+      "nanos": 439125
+    },
+    "errors": 0,
+    "warnings": 2,
+    "infos": 0,
+    "skipped": 0,
+    "suggestedFixesSkipped": 2,
+    "diagnosticsNotPrinted": 0
+  },
+  "diagnostics": [
+    {
+      "category": "lint/correctness/noUnusedVariables",
+      "severity": "warning",
+      "description": "This variable x is unused.",
+      "message": [
+        {
+          "elements": [],
+          "content": "This variable "
+        },
+        {
+          "elements": [
+            "Emphasis"
+          ],
+          "content": "x"
+        },
+        {
+          "elements": [],
+          "content": " is unused."
+        }
+      ],
+      "advices": {
+        "advices": [
+          {
+            "log": [
+              "info",
+              [
+                {
+                  "elements": [],
+                  "content": "Unused variables are often the result of typos, incomplete refactors, or other sources of bugs."
+                }
+              ]
+            ]
+          },
+          {
+            "log": [
+              "info",
+              [
+                {
+                  "elements": [],
+                  "content": "Unsafe fix: If this is intentional, prepend "
+                },
+                {
+                  "elements": [
+                    "Emphasis"
+                  ],
+                  "content": "x"
+                },
+                {
+                  "elements": [],
+                  "content": " with an underscore."
+                }
+              ]
+            ]
+          },
+          {
+            "diff": {
+              "dictionary": "const x_x=1;const y   =2;\n",
+              "ops": [
+                {
+                  "diffOp": {
+                    "equal": {
+                      "range": [
+                        0,
+                        6
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "delete": {
+                      "range": [
+                        6,
+                        7
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "insert": {
+                      "range": [
+                        7,
+                        9
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "equal": {
+                      "range": [
+                        9,
+                        26
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "verboseAdvices": {
+        "advices": []
+      },
+      "location": {
+        "path": {
+          "file": "test-formatting.ts"
+        },
+        "span": [
+          6,
+          7
+        ],
+        "sourceCode": "const x=1;const y   =2;\n"
+      },
+      "tags": [
+        "fixable"
+      ],
+      "source": null
+    },
+    {
+      "category": "lint/correctness/noUnusedVariables",
+      "severity": "warning",
+      "description": "This variable y is unused.",
+      "message": [
+        {
+          "elements": [],
+          "content": "This variable "
+        },
+        {
+          "elements": [
+            "Emphasis"
+          ],
+          "content": "y"
+        },
+        {
+          "elements": [],
+          "content": " is unused."
+        }
+      ],
+      "advices": {
+        "advices": [
+          {
+            "log": [
+              "info",
+              [
+                {
+                  "elements": [],
+                  "content": "Unused variables are often the result of typos, incomplete refactors, or other sources of bugs."
+                }
+              ]
+            ]
+          },
+          {
+            "log": [
+              "info",
+              [
+                {
+                  "elements": [],
+                  "content": "Unsafe fix: If this is intentional, prepend "
+                },
+                {
+                  "elements": [
+                    "Emphasis"
+                  ],
+                  "content": "y"
+                },
+                {
+                  "elements": [],
+                  "content": " with an underscore."
+                }
+              ]
+            ]
+          },
+          {
+            "diff": {
+              "dictionary": "const x=1;const y_y   =2;\n",
+              "ops": [
+                {
+                  "diffOp": {
+                    "equal": {
+                      "range": [
+                        0,
+                        16
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "delete": {
+                      "range": [
+                        16,
+                        17
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "insert": {
+                      "range": [
+                        17,
+                        19
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "equal": {
+                      "range": [
+                        19,
+                        22
+                      ]
+                    }
+                  }
+                },
+                {
+                  "diffOp": {
+                    "equal": {
+                      "range": [
+                        22,
+                        26
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "verboseAdvices": {
+        "advices": []
+      },
+      "location": {
+        "path": {
+          "file": "test-formatting.ts"
+        },
+        "span": [
+          16,
+          17
+        ],
+        "sourceCode": "const x=1;const y   =2;\n"
+      },
+      "tags": [
+        "fixable"
+      ],
+      "source": null
+    }
+  ],
+  "command": "check"
+}
