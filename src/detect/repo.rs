@@ -6,7 +6,6 @@ use std::path::{Path, PathBuf};
 ///
 /// A `.git` file (not dir) is produced by git worktrees and submodules — we
 /// accept it and still return the containing directory.
-#[allow(dead_code)]
 pub fn find_git_root(start: &Path) -> io::Result<Option<PathBuf>> {
     let mut current = start;
     loop {

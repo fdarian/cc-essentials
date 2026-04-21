@@ -11,7 +11,6 @@ use std::sync::OnceLock;
 /// 2. Fall back to `which::which("biome")`.
 ///
 /// Returns `Ok(None)` when biome is not installed in either location.
-#[allow(dead_code)] // wired up in future commit
 pub fn find_biome_binary(start: &Path) -> io::Result<Option<PathBuf>> {
     let mut current = start;
     loop {
@@ -31,14 +30,12 @@ pub fn find_biome_binary(start: &Path) -> io::Result<Option<PathBuf>> {
     }
 }
 
-#[allow(dead_code)] // used by probe_version
 fn semver_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"\d+\.\d+\.\d+").unwrap())
 }
 
 /// Run `<binary> --version` and extract the first semver-shaped token.
-#[allow(dead_code)] // wired up in future commit
 pub fn probe_version(binary: &Path) -> io::Result<String> {
     let output = Command::new(binary).arg("--version").output()?;
     let mut combined = String::from_utf8_lossy(&output.stdout).into_owned();

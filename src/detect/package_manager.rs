@@ -1,7 +1,6 @@
 use super::PackageManager;
 use std::path::{Path, PathBuf};
 
-#[allow(dead_code)]
 impl PackageManager {
     pub fn lockfile_name(&self) -> &'static str {
         match self {
@@ -14,7 +13,6 @@ impl PackageManager {
 }
 
 /// Priority order when multiple lockfiles coexist at the same level.
-#[allow(dead_code)]
 const PRIORITY: [PackageManager; 4] = [
     PackageManager::Bun,
     PackageManager::Pnpm,
@@ -25,7 +23,6 @@ const PRIORITY: [PackageManager; 4] = [
 /// Walk up from `start` (directory) looking for a lockfile. At each level,
 /// lockfiles are checked in `PRIORITY` order. The first hit at the nearest
 /// level wins.
-#[allow(dead_code)]
 pub fn detect_package_manager(start: &Path) -> Option<(PackageManager, PathBuf)> {
     let mut current = start;
     loop {

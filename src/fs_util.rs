@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(dead_code)] // used in next commit
 pub struct FileStamp {
     pub mtime_unix_nanos: i128,
     pub size: u64,
@@ -13,7 +12,6 @@ pub struct FileStamp {
 /// Walk up from `start_dir` (must be a directory) checking each `candidate` at
 /// each level, returning the first match's absolute path. `candidates` are
 /// checked in order at each level (first match wins per level).
-#[allow(dead_code)] // used in next commit
 pub fn walk_up_for(start_dir: &Path, candidates: &[&str]) -> Option<PathBuf> {
     let mut current = start_dir;
     loop {
@@ -30,7 +28,6 @@ pub fn walk_up_for(start_dir: &Path, candidates: &[&str]) -> Option<PathBuf> {
     }
 }
 
-#[allow(dead_code)] // used in next commit
 pub fn file_stamp(path: &Path) -> io::Result<FileStamp> {
     let meta = std::fs::metadata(path)?;
     let modified = meta.modified()?;

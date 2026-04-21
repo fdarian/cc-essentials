@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 /// Find the nearest `biome.json` or `biome.jsonc` walking up from `start`.
 /// At the same directory level, `biome.json` is preferred over `biome.jsonc`.
-#[allow(dead_code)] // wired up in future commit
 pub fn find_biome_config(start: &Path) -> Option<PathBuf> {
     walk_up_for(start, &["biome.json", "biome.jsonc"])
 }

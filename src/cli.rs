@@ -1,3 +1,6 @@
+use crate::cache;
+use crate::detect;
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -28,7 +31,14 @@ pub fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Doctor => {
-            println!("doctor: not yet implemented");
+            let start = std::env::current_dir().context("cwd")?;
+            let cache = cache::Cache::open()?;
+            let d = detect::detect_from(&start, &cache)?;
+            println!("doctor:");
+            println!("  start: {}", d.start.display());
+            println!("  repo_root: {:?}", d.repo_root);
+            println!("  package_manager: {:?}", d.package_manager);
+            println!("  biome: {:?}", d.biome);
         }
         Command::Hooks { cmd } => match cmd {
             HooksCommand::Crite => {
