@@ -43,8 +43,6 @@ commas. And surfacing lint findings into Claude's context means
 Claude gets a tight review loop without the user having to paste errors
 by hand.
 
-#### Setup
-
 Add to `.claude/settings.json` (project-local) or `~/.claude/settings.json`
 (user-global):
 
@@ -151,6 +149,16 @@ ready: biome detected
 
 If any piece is missing, `doctor` tells you — and tells you plainly
 when the project isn't supported (no JS/TS lockfile, no biome config).
+
+### `logs`
+
+When a hook silently no-ops, this is the first thing to reach for. It
+prints the always-on `last-error.json` dump and tails `hooks.log` if
+opt-in logging is enabled (`CC_ESSENTIALS_LOG=1`).
+
+```sh
+cc-essentials logs
+```
 
 ## Caveats
 
