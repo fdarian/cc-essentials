@@ -1,6 +1,6 @@
 # cc-essentials
 
-> ⚠️ This is all vibecoded. I'm not an experienced in Rust.
+> ⚠️ This is all vibecoded. I'm not experienced in Rust.
 
 A small Rust CLI that makes [Claude Code](https://www.anthropic.com/claude-code)
 smarter in JavaScript/TypeScript projects.
