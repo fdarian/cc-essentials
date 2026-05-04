@@ -1,43 +1,29 @@
 # cc-essentials
 
+> ⚠️ This is all vibecoded. I'm not an experienced in Rust.
+
 A small Rust CLI that makes [Claude Code](https://www.anthropic.com/claude-code)
-smarter in JavaScript/TypeScript projects that use
-[Biome](https://biomejs.dev/).
+smarter in JavaScript/TypeScript projects.
 
-Two commands:
+Use cases (so far):
 
-- **`doctor`** — a one-shot health check: what repo are we in, what
-  package manager, where's the biome config, where's the biome binary,
-  what version, where does the cache live.
-- **`hooks crite`** (short for "check and write") — designed to run
-  inside a Claude Code `PostToolUse` hook. Every time Claude writes or
-  edits a JS/TS file, this command formats the file with biome and
-  feeds any remaining lint diagnostics back into Claude's context.
+- **[Format and lint with Biome](#format-and-lint-with-biome)** — every time
+  Claude writes or edits a JS/TS file, format it with [Biome](https://biomejs.dev/)
+  and feed any remaining lint diagnostics back into Claude's context.
 
-## Why
-
-Claude writes partial code mid-edit. Running a formatter automatically
-closes the style gap instead of Claude spending tokens on trailing
-commas. And surfacing lint findings into Claude's context means
-Claude gets a tight review loop without the user having to paste errors
-by hand.
-
-Two design decisions matter:
-
-1. **The hook NEVER blocks a tool execution.** It always exits 0. Worst
-   case — biome is missing, stdin is garbage, the file doesn't exist —
-   the hook is silently a no-op.
-2. **Biome won't rewrite files with parse errors.** This is biome's
-   default behavior; we rely on it. When Claude writes syntactically
-   broken code partway through an edit, the formatter stays out of the
-   way.
-
-## Install
-
-From source (rust 1.70+):
+## Installation
 
 ```sh
-git clone https://github.com/<you>/cc-essentials
+brew install fdarian/tap/cc-essentials
+```
+
+<details>
+<summary>From source</summary>
+
+Requires Rust 1.70+:
+
+```sh
+git clone https://github.com/fdarian/cc-essentials
 cd cc-essentials
 cargo install --path .
 ```
@@ -45,33 +31,19 @@ cargo install --path .
 Installs a `cc-essentials` binary to `~/.cargo/bin` (or wherever your
 cargo install root is).
 
-## Quick start
+</details>
 
-### 1. Run `doctor` in your project
+## Use cases
 
-```sh
-cd path/to/your/ts/project
-cc-essentials doctor
-```
+### Format and lint with Biome
 
-Example output:
+Claude writes partial code mid-edit. Running a formatter automatically
+closes the style gap instead of Claude spending tokens on trailing
+commas. And surfacing lint findings into Claude's context means
+Claude gets a tight review loop without the user having to paste errors
+by hand.
 
-```
-cc-essentials doctor
-  start: /Users/you/code/my-app
-  git repo root: /Users/you/code/my-app (found)
-  package manager: Pnpm (/Users/you/code/my-app/pnpm-lock.yaml) (found)
-  biome config: /Users/you/code/my-app/biome.json (found)
-  biome binary: /Users/you/code/my-app/node_modules/.bin/biome (found)
-  biome version: 1.9.4
-  cache dir: /Users/you/Library/Caches/cc-essentials/detect
-ready: biome detected
-```
-
-If any piece is missing, `doctor` tells you — and tells you plainly
-when the project isn't supported (no JS/TS lockfile, no biome config).
-
-### 2. Wire up the PostToolUse hook
+#### Setup
 
 Add to `.claude/settings.json` (project-local) or `~/.claude/settings.json`
 (user-global):
@@ -101,7 +73,8 @@ That's it. Next time Claude writes or edits a `.ts` / `.tsx` / `.js` /
 a project with a `biome.json`, Biome runs, the file is formatted, and
 any lint findings flow back into the conversation.
 
-## What Claude sees vs what you see
+<details>
+<summary>What Claude sees vs what you see</summary>
 
 Claude Code's hook protocol has separate channels. We use both:
 
@@ -120,32 +93,23 @@ Claude Code's hook protocol has separate channels. We use both:
 On a clean run (no lint findings), Claude's context stays quiet — we
 only inject when there's something useful to say.
 
-## Monorepos
+</details>
 
-`cc-essentials` walks up from the edited file to find the nearest
-`biome.json`. If your monorepo has a root config and per-package
-configs, each package gets its own — run from `packages/foo/src/x.ts`
-uses `packages/foo/biome.json` if present, else falls back to the root.
+<details>
+<summary>Design decisions</summary>
 
-Biome resolves config from its current working directory, so we set
-the subprocess cwd to the biome.json's parent directory and pass the
-target file as a relative path. You don't need to configure anything.
+1. **The hook NEVER blocks a tool execution.** It always exits 0. Worst
+   case — biome is missing, stdin is garbage, the file doesn't exist —
+   the hook is silently a no-op.
+2. **Biome won't rewrite files with parse errors.** This is biome's
+   default behavior; we rely on it. When Claude writes syntactically
+   broken code partway through an edit, the formatter stays out of the
+   way.
 
-## Debugging silent no-ops
+</details>
 
-Because `hooks crite` is silent on any unsupported input (by design),
-use the opt-in log to see what happened:
-
-```sh
-CC_ESSENTIALS_LOG=1  # set in your shell environment
-# now trigger the hook — Claude edits any file
-cat ~/Library/Caches/cc-essentials/detect/hooks.log
-```
-
-Each invocation appends one JSONL line: `hook.skip_unsupported_tool`,
-`hook.skip_missing_file`, `hook.completed`, etc.
-
-## Caveats
+<details>
+<summary>Caveats</summary>
 
 - **Biome's `--reporter=json` flag is marked unstable** by upstream.
   The output shape may change between patch releases. Our schema
@@ -153,9 +117,44 @@ Each invocation appends one JSONL line: `hook.skip_unsupported_tool`,
   fields default), but a bigger format change would require a version
   bump of `cc-essentials`. If `hooks crite` suddenly goes silent after
   a biome upgrade, run `doctor` first, then file an issue.
-- **Unix only for v1** (macOS, Linux). No Windows testing.
 - **Biome only for v1.** Prettier / eslint-flat / dprint are not yet
   detected.
+
+</details>
+
+## Utilities
+
+### `doctor`
+
+A one-shot health check: what repo are we in, what package manager,
+where's the biome config, where's the biome binary, what version, where
+does the cache live.
+
+```sh
+cd path/to/your/ts/project
+cc-essentials doctor
+```
+
+Example output:
+
+```
+cc-essentials doctor
+  start: /Users/you/code/my-app
+  git repo root: /Users/you/code/my-app (found)
+  package manager: Pnpm (/Users/you/code/my-app/pnpm-lock.yaml) (found)
+  biome config: /Users/you/code/my-app/biome.json (found)
+  biome binary: /Users/you/code/my-app/node_modules/.bin/biome (found)
+  biome version: 1.9.4
+  cache dir: /Users/you/Library/Caches/cc-essentials/detect
+ready: biome detected
+```
+
+If any piece is missing, `doctor` tells you — and tells you plainly
+when the project isn't supported (no JS/TS lockfile, no biome config).
+
+## Caveats
+
+- **Unix only for v1** (macOS, Linux). No Windows testing.
 - **The cache is unbounded.** One ~1KB JSON file per biome.json you've
   ever hit. Clear it with `rm -rf ~/Library/Caches/cc-essentials` if
   you need to.
@@ -180,4 +179,4 @@ pointers to the `notes/` folder.
 
 ## License
 
-MIT
+Apache 2.0 — see [LICENSE](LICENSE).
