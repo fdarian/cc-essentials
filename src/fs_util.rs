@@ -21,10 +21,7 @@ pub fn walk_up_for(start_dir: &Path, candidates: &[&str]) -> Option<PathBuf> {
                 return Some(probe);
             }
         }
-        match current.parent() {
-            Some(parent) => current = parent,
-            None => return None,
-        }
+        current = current.parent()?;
     }
 }
 

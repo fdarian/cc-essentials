@@ -51,27 +51,52 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
     };
     let file_path = PathBuf::from(file_path_str);
 
-    // 3. Must be a supported extension.
-    if !is_supported_extension(&file_path) {
+    let Some(result) = process_file(cache, &input.tool_name, &file_path)? else {
+        return Ok(HookOutput::default());
+    };
+
+    Ok(HookOutput {
+        system_message: Some(result.system_message),
+        hook_specific_output: Some(HookSpecificOutput {
+            hook_event_name: "PostToolUse",
+            additional_context: result.additional_context,
+        }),
+    })
+}
+
+pub(crate) struct FileHookResult {
+    pub(crate) system_message: String,
+    pub(crate) additional_context: Option<String>,
+}
+
+pub(crate) fn process_file(
+    cache: &Cache,
+    tool_name: &str,
+    file_path: &Path,
+) -> Result<Option<FileHookResult>> {
+    let file_path_str = file_path.to_string_lossy().into_owned();
+
+    // Must be a supported extension.
+    if !is_supported_extension(file_path) {
         log::log_event(
             cache.dir(),
             "hook.skip_unsupported_extension",
             json!({ "path": file_path_str }),
         );
-        return Ok(HookOutput::default());
+        return Ok(None);
     }
 
-    // 4. File must exist (it might have been deleted if this is a weird edge case).
+    // The file might have been deleted if this is a weird edge case.
     if !file_path.exists() {
         log::log_event(
             cache.dir(),
             "hook.skip_missing_file",
             json!({ "path": file_path_str }),
         );
-        return Ok(HookOutput::default());
+        return Ok(None);
     }
 
-    // 5. Detect biome config + binary from the file's parent directory.
+    // Detect biome config + binary from the file's parent directory.
     let parent = file_path.parent().unwrap_or(Path::new("."));
     let detected = detect::detect_from(parent, cache)?;
     let Some(biome) = detected.biome else {
@@ -80,10 +105,10 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
             "hook.skip_no_biome",
             json!({ "path": file_path_str }),
         );
-        return Ok(HookOutput::default());
+        return Ok(None);
     };
 
-    // 6. Compute the file path relative to the biome config's directory (biome uses cwd=config_dir).
+    // Biome resolves config from cwd, so pass the file relative to its config directory.
     let config_dir = match biome.config_path.parent() {
         Some(p) => p.to_path_buf(),
         None => {
@@ -92,12 +117,13 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
                 "hook.no_config_parent",
                 json!({ "config": biome.config_path.display().to_string() }),
             );
-            return Ok(HookOutput::default());
+            return Ok(None);
         }
     };
     let config_path = biome.config_path.clone();
     let binary_path = biome.binary_path.clone();
-    let file_canonical = std::fs::canonicalize(&file_path).unwrap_or(file_path.clone());
+    let file_canonical =
+        std::fs::canonicalize(file_path).unwrap_or_else(|_| file_path.to_path_buf());
     let config_dir_canonical = std::fs::canonicalize(&config_dir).unwrap_or(config_dir.clone());
     let relative = match file_canonical.strip_prefix(&config_dir_canonical) {
         Ok(r) => r.to_path_buf(),
@@ -108,7 +134,7 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
         }
     };
 
-    // 7. Run biome.
+    // Run biome.
     let argv: Vec<String> = vec![
         "check".to_string(),
         "--write".to_string(),
@@ -127,7 +153,7 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
         _ => None,
     };
 
-    // 8. Write last-error.json (always-on) and emit enriched log events for non-Parsed outcomes.
+    // Write last-error.json (always-on) and emit enriched log events for non-Parsed outcomes.
     match &outcome {
         BiomeOutcome::Parsed { .. } => {
             log::log_event(
@@ -148,7 +174,7 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
             let payload = LastErrorPayload {
                 ts_unix_ms: error_dump::current_ts_unix_ms(),
                 event: "fallback_text",
-                tool_name: input.tool_name.clone(),
+                tool_name: tool_name.to_string(),
                 file_path: file_path_str.clone(),
                 biome_binary: Some(binary_path.clone()),
                 biome_config: Some(config_path.clone()),
@@ -177,7 +203,7 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
             let payload = LastErrorPayload {
                 ts_unix_ms: error_dump::current_ts_unix_ms(),
                 event: "spawn_failed",
-                tool_name: input.tool_name.clone(),
+                tool_name: tool_name.to_string(),
                 file_path: file_path_str.clone(),
                 biome_binary: Some(binary_path.clone()),
                 biome_config: Some(config_path.clone()),
@@ -203,13 +229,10 @@ fn run_inner(cache: &Cache, stdin: &mut dyn Read) -> Result<HookOutput> {
         }
     }
 
-    Ok(HookOutput {
-        system_message: Some(sys_msg),
-        hook_specific_output: Some(HookSpecificOutput {
-            hook_event_name: "PostToolUse",
-            additional_context: additional,
-        }),
-    })
+    Ok(Some(FileHookResult {
+        system_message: sys_msg,
+        additional_context: additional,
+    }))
 }
 
 fn outcome_kind(o: &BiomeOutcome) -> &'static str {

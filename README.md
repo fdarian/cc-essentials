@@ -3,13 +3,15 @@
 > ⚠️ This is all vibecoded. I'm not experienced in Rust.
 
 A small Rust CLI that makes [Claude Code](https://www.anthropic.com/claude-code)
-smarter in JavaScript/TypeScript projects.
+and [Codex](https://developers.openai.com/codex/) smarter in
+JavaScript/TypeScript projects.
 
 Use cases (so far):
 
 - **[Format and lint with Biome](#format-and-lint-with-biome)** — every time
-  Claude writes or edits a JS/TS file, format it with [Biome](https://biomejs.dev/)
-  and feed any remaining lint diagnostics back into Claude's context.
+  Claude or Codex writes or edits a JS/TS file, format it with
+  [Biome](https://biomejs.dev/) and feed any remaining lint diagnostics back
+  into the agent's context.
 
 ## Installation
 
@@ -70,6 +72,39 @@ That's it. Next time Claude writes or edits a `.ts` / `.tsx` / `.js` /
 `.jsx` / `.mjs` / `.cjs` / `.mts` / `.cts` / `.json` / `.jsonc` file in
 a project with a `biome.json`, Biome runs, the file is formatted, and
 any lint findings flow back into the conversation.
+
+#### Codex
+
+Codex uses a different hook input shape: file edits arrive as an
+`apply_patch` event whose `tool_input.command` contains the patch text.
+Add a command hook to `.codex/hooks.json` (project-local) or
+`~/.codex/hooks.json` (user-global):
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cc-essentials codex hooks crite",
+            "timeout": 30,
+            "statusMessage": "Running biome..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook extracts every Add / Update / Delete / Move path in a patch,
+runs Biome once per existing JavaScript or TypeScript file, and returns
+diagnostics through Codex's `hookSpecificOutput.additionalContext`.
+`Bash` is included for Codex versions that wrap an `apply_patch` heredoc
+or write a file through a shell redirect.
 
 <details>
 <summary>What Claude sees vs what you see</summary>
