@@ -1,8 +1,8 @@
 [package]
 name = "cc-essentials"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Claude Code essentials: doctor and post-tool formatting hook"
+description = "Claude Code and Codex essentials: doctor and post-tool formatting hooks"
 license = "MIT"
 
 [dependencies]

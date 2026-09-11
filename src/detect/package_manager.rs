@@ -32,10 +32,7 @@ pub fn detect_package_manager(start: &Path) -> Option<(PackageManager, PathBuf)>
                 return Some((pm.clone(), probe));
             }
         }
-        match current.parent() {
-            Some(parent) => current = parent,
-            None => return None,
-        }
+        current = current.parent()?;
     }
 }
 

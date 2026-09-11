@@ -4,7 +4,11 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "cc-essentials", version, about = "Claude Code essentials")]
+#[command(
+    name = "cc-essentials",
+    version,
+    about = "Claude Code and Codex essentials"
+)]
 pub struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -21,11 +25,31 @@ enum Command {
         #[command(subcommand)]
         cmd: HooksCommand,
     },
+    /// Codex hooks.
+    Codex {
+        #[command(subcommand)]
+        cmd: CodexCommand,
+    },
 }
 
 #[derive(Subcommand)]
 enum HooksCommand {
     /// Check and write: format the file and report diagnostics.
+    Crite,
+}
+
+#[derive(Subcommand)]
+enum CodexCommand {
+    /// Codex lifecycle hooks.
+    Hooks {
+        #[command(subcommand)]
+        cmd: CodexHooksCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum CodexHooksCommand {
+    /// Check and write: format changed files and report diagnostics.
     Crite,
 }
 
@@ -52,6 +76,16 @@ pub fn run() -> anyhow::Result<()> {
                 let mut stdout = std::io::stdout().lock();
                 commands::hooks_crite::run(&cache, &mut stdin, &mut stdout)?;
             }
+        },
+        Command::Codex { cmd } => match cmd {
+            CodexCommand::Hooks { cmd } => match cmd {
+                CodexHooksCommand::Crite => {
+                    let cache = cache::Cache::open()?;
+                    let mut stdin = std::io::stdin().lock();
+                    let mut stdout = std::io::stdout().lock();
+                    commands::codex_hooks_crite::run(&cache, &mut stdin, &mut stdout)?;
+                }
+            },
         },
     }
     Ok(())

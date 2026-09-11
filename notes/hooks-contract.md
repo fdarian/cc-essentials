@@ -110,3 +110,22 @@ both paths, pretty-prints `last-error.json` if present, and tails the
 last 10 entries of `hooks.log`. This is what users should run first
 when the hook misbehaves — faster than grepping the cache dir by
 hand.
+
+## Codex hook variant
+
+`cc-essentials codex hooks crite` implements the same non-blocking
+format-and-report behavior for Codex `PostToolUse` command hooks.
+
+Codex sends `tool_input` as a JSON value. For the canonical
+`apply_patch` tool, the patch text is in `tool_input.command`; some
+clients provide the raw patch as the value itself. The adapter accepts
+both forms, extracts every `*** Add File:`, `*** Update File:`,
+`*** Delete File:`, and `*** Move to:` path, resolves relative paths
+against the event's `cwd`, and runs the shared Biome pipeline once per
+existing supported file. It also recognizes an `apply_patch` heredoc
+inside a `Bash` PostToolUse event and common `cat` / `tee` redirects.
+
+Codex's output contract uses the same `systemMessage` and
+`hookSpecificOutput.additionalContext` fields. The Codex hook never
+returns a blocking decision, so formatting or detection failures do not
+affect the completed tool call and the process still exits 0.
