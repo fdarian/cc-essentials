@@ -16,7 +16,7 @@ Use cases (so far):
 ## Installation
 
 ```sh
-brew install fdarian/tap/cc-essentials
+mise use -g github:fdarian/cc-essentials
 ```
 
 <details>
