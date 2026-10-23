@@ -1,0 +1,13 @@
+{
+  "name": "cc-essentials",
+  "version": "0.2.0",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "scripts": {
+    "ci:version": "changeset version && node scripts/sync-cargo-version.mjs",
+    "ci:release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^3.0.3"
+  }
+}
