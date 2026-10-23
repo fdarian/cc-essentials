@@ -20,6 +20,21 @@ brew install fdarian/tap/cc-essentials
 ```
 
 <details>
+<summary>Prebuilt binary</summary>
+
+Download from the [latest release](https://github.com/fdarian/cc-essentials/releases/latest).
+Assets: `darwin-arm64`, `darwin-x64`, `linux-arm64`, `linux-x64`.
+
+```sh
+ASSET=darwin-arm64 # or darwin-x64, linux-arm64, linux-x64
+mkdir -p ~/.local/bin
+curl -fsSL "https://github.com/fdarian/cc-essentials/releases/latest/download/cc-essentials-$ASSET.tar.gz" \
+  | tar -xz -C ~/.local/bin cc-essentials
+```
+
+</details>
+
+<details>
 <summary>From source</summary>
 
 Requires Rust 1.70+:

@@ -154,6 +154,20 @@ Non-obvious architectural choices live under `notes/`:
 - [`hooks-contract.md`](notes/hooks-contract.md) — always-exit-0,
   `systemMessage` vs `additionalContext`, MultiEdit defensive handling.
 
+## Releasing
+
+Releases are driven by Changesets, with `package.json` as the version
+source of truth.
+
+- Run `pnpm exec changeset` (or `pnx changeset`) for any user-facing
+  change and commit the generated file.
+- Never bump `Cargo.toml` by hand: `pnpm run ci:version` runs
+  `changeset version` then `scripts/sync-cargo-version.mjs`, which copies
+  the version into `Cargo.toml` and `Cargo.lock`.
+- Merging the `Version Packages` PR tags `v<version>`; CI
+  (`.github/workflows/release.yml`) builds darwin/linux binaries and uploads
+  `cc-essentials-<asset>.tar.gz` to that release.
+
 ## Scope
 
 Out of scope for v1 (intentional):
