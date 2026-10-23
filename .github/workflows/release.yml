@@ -1,0 +1,122 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: ['.changeset/**']
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      version: ${{ steps.changesets.outputs.published == 'true' && fromJSON(steps.changesets.outputs.published-packages)[0].version || '' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # ci:version runs scripts/sync-cargo-version.mjs, so Node must be on PATH.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          package-manager-cache: false
+      - uses: pnpm/setup@v3
+        with:
+          cache: false
+          require-lockfile: true
+      - id: changesets
+        uses: changesets/action@v2
+        with:
+          version-script: pnpm run ci:version
+          publish-script: pnpm run ci:release
+          create-github-releases: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            asset: darwin-arm64
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            asset: darwin-x64
+            os: macos-latest
+          - target: x86_64-unknown-linux-musl
+            asset: linux-x64
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            asset: linux-arm64
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.release.outputs.version }}
+          persist-credentials: false
+      - name: Install musl tools
+        if: endsWith(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --target "$TARGET"
+          rustup default stable
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release --locked --target "$TARGET"
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Codesign
+        if: contains(matrix.target, '-apple-darwin')
+        run: |
+          bin="target/$TARGET/release/cc-essentials"
+          codesign --force --sign - "$bin"
+          codesign --verify --verbose=4 "$bin"
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Package
+        run: tar -czf "cc-essentials-$ASSET.tar.gz" -C "target/$TARGET/release" cc-essentials
+        env:
+          ASSET: ${{ matrix.asset }}
+          TARGET: ${{ matrix.target }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cc-essentials-${{ matrix.asset }}
+          path: cc-essentials-${{ matrix.asset }}.tar.gz
+          if-no-files-found: error
+
+  upload:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.release.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cc-essentials-*
+          merge-multiple: true
+          path: dist
+      - name: Upload release assets
+        run: |
+          TAG="v$VERSION"
+          gh release view "$TAG" || gh release create "$TAG" --title "$TAG" --notes ""
+          gh release upload "$TAG" dist/*.tar.gz --clobber
